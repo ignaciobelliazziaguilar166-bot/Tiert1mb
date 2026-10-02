@@ -76,6 +76,10 @@
         .modal-content input { width: 100%; margin: 10px 0; padding: 10px; background: var(--bg-color); border: 1px solid var(--border-color); color: white; }
         .modal-content button { background: var(--primary-red); color: white; border: none; padding: 10px; width: 100%; cursor: pointer; border-radius: 5px; font-weight: bold; }
     </style>
+
+    <!-- LIBRERÍAS DE FIREBASE (Añadidas para conexión global) -->
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -146,7 +150,7 @@
     </div>
 
     <script>
-        // Modalidades (Añadido Top General separado)
+        // Modalidades 
         const modes = [
             { id: 'general', name: 'Top General', emoji: '👑' },
             { id: 'uhc', name: 'Uhc', emoji: '🍎' },
@@ -159,22 +163,47 @@
             { id: 'crystal', name: 'Crystal', emoji: '🔮' }
         ];
 
-        // Tiers que califican para el Banner Élite
         const eliteTiers = ['MidT3', 'HT3', 'LT2', 'MidT2', 'HT2', 'LT1', 'MidT1', 'HT1'];
-
         let currentMode = 'general';
         let isAdmin = false;
+        let players = [];
 
-        // Cargar base de datos desde LocalStorage para que no se borre al actualizar
-        let players = JSON.parse(localStorage.getItem('tiert1mb_data')) || [
-            { id: 1, name: 'Distraccion', platform: 'Java', mode: 'general', tier: 'HT1', points: 3000, status: 'activo', duels: [] },
-            { id: 2, name: 'Elfo', platform: 'Java', mode: 'uhc', tier: 'MidT3', points: 1500, status: 'activo', duels: [] }
-        ];
+        // ==========================================
+        // CONFIGURACIÓN DE FIREBASE (Base de datos global)
+        // ==========================================
+        const firebaseConfig = {
+    apiKey: "AIzaSyDsQUvGtU-7djMQwMltz2qsMzsd-67ZOTU",
+    authDomain: "my-proyect-b9c81.firebaseapp.com",
+    databaseURL: "https://my-proyect-b9c81-default-rtdb.firebaseio.com",
+    projectId: "my-proyect-b9c81",
+    storageBucket: "my-proyect-b9c81.firebasestorage.app",
+    messagingSenderId: "984171291659",
+    appId: "1:984171291659:web:16fe814824e46f84f8530e",
+    measurementId: "G-4J8ESJT40V"
+  };
 
-        // Función para guardar datos en el navegador
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const playersRef = database.ref('tiert1mb/players');
+
+        // Escuchar cambios de la base de datos EN TIEMPO REAL
+        playersRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                // Filtramos por si la base de datos genera espacios nulos al eliminar
+                players = Array.isArray(data) ? data.filter(p => p !== null) : Object.values(data);
+            } else {
+                players = []; // Si la BD está vacía
+            }
+            renderPlayers(); // Renderizar a todos los conectados
+        });
+
+        // Función para guardar datos en la Nube
         function saveData() {
-            localStorage.setItem('tiert1mb_data', JSON.stringify(players));
+            playersRef.set(players);
         }
+        // ==========================================
 
         // Renderizar Pestañas
         function renderTabs() {
@@ -210,12 +239,11 @@
             filteredPlayers.sort((a, b) => b.points - a.points);
 
             if (filteredPlayers.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">No se encontraron jugadores en esta modalidad.</p>';
+                container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">No se encontraron jugadores.</p>';
                 return;
             }
 
             container.innerHTML = filteredPlayers.map((p, index) => {
-                // Verificar si merece banner elite
                 const isElite = eliteTiers.includes(p.tier);
                 
                 return `
@@ -232,7 +260,7 @@
                     
                     <div class="duels-section">
                         <strong>Últimos Duelos:</strong>
-                        ${p.duels.length > 0 ? p.duels.map(d => `
+                        ${(p.duels && p.duels.length > 0) ? p.duels.map(d => `
                             <div class="duel-entry">
                                 <span>${d.text}</span>
                                 <span class="${d.trend === 'up' ? 'duel-up' : 'duel-down'}">
@@ -296,28 +324,26 @@
             if (!name) return alert('El nombre es obligatorio');
 
             if (id) {
-                // Editar
                 const player = players.find(p => p.id == parseInt(id));
-                player.name = name;
-                player.platform = platform;
-                player.tier = tier;
-                player.points = points;
-                player.status = status;
+                if(player) {
+                    player.name = name;
+                    player.platform = platform;
+                    player.tier = tier;
+                    player.points = points;
+                    player.status = status;
+                }
             } else {
-                // Crear nuevo
                 players.push({
                     id: Date.now(),
                     name, platform, tier, points, status, mode: currentMode, duels: []
                 });
             }
 
-            saveData(); // Guardar en el navegador
+            saveData(); // Guardar en Firebase
             
             document.getElementById('edit-id').value = '';
             document.getElementById('form-name').value = '';
             document.getElementById('form-points').value = '';
-            
-            renderPlayers();
         }
 
         function editPlayer(id) {
@@ -334,8 +360,7 @@
         function deletePlayer(id) {
             if (confirm('¿Estás seguro de que deseas ELIMINAR a este jugador?')) {
                 players = players.filter(p => p.id !== id);
-                saveData(); // Guardar en el navegador
-                renderPlayers();
+                saveData(); // Guardar en Firebase
             }
         }
 
@@ -345,17 +370,16 @@
             const subio = confirm('¿Haz clic en "Aceptar" si SUBIÓ, o "Cancelar" si BAJÓ.');
             
             const player = players.find(p => p.id === id);
+            if (!player.duels) player.duels = [];
             player.duels.unshift({ text: text, trend: subio ? 'up' : 'down' });
             
             if (player.duels.length > 3) player.duels.pop();
             
-            saveData(); // Guardar en el navegador
-            renderPlayers();
+            saveData(); // Guardar en Firebase
         }
 
-        // Iniciar App
+        // Iniciar
         renderTabs();
-        renderPlayers();
     </script>
 </body>
 </html>
