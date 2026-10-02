@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tiert1MB - Hub Competitivo</title>
+    <style>
+        /* Estilos Base inspirados en Drakense */
+        :root {
+            --bg-color: #0d0d12;
+            --panel-bg: #1a1a24;
+            --primary-red: #e62424;
+            --text-main: #ffffff;
+            --text-muted: #888899;
+            --border-color: #2a2a35;
+            --gold: #ffd700;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; }
+        
+        /* Navegación */
+        header { background-color: var(--panel-bg); border-bottom: 2px solid var(--border-color); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+        .logo span { color: var(--primary-red); }
+        .search-bar { display: flex; gap: 10px; flex: 1; min-width: 250px; max-width: 400px; }
+        .search-bar input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: white; }
+        .admin-btn { padding: 10px 15px; background: var(--border-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .admin-btn:hover { background: var(--primary-red); }
+
+        /* Pestañas de Modalidades */
+        .tabs { display: flex; overflow-x: auto; padding: 15px 20px; background: var(--panel-bg); gap: 10px; border-bottom: 1px solid var(--border-color); }
+        .tab { padding: 10px 20px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; white-space: nowrap; color: var(--text-muted); font-weight: bold; transition: 0.3s; }
+        .tab.active { background: var(--primary-red); color: white; border-color: var(--primary-red); }
+        .tab:hover:not(.active) { border-color: var(--primary-red); color: white; }
+
+        /* Contenido Principal */
+        .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        
+        /* Panel de Admin */
+        #admin-panel { display: none; background: var(--panel-bg); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-red); }
+        #admin-panel h3 { color: var(--primary-red); margin-bottom: 15px; }
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .admin-grid input, .admin-grid select { padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: white; }
+        .btn-submit { padding: 10px; background: var(--primary-red); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+
+        /* Lista de Jugadores */
+        .player-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; position: relative; }
+        
+        /* Banner Personalizado (MidT3 en adelante) */
+        .elite-banner { border: 1px solid var(--gold); background: linear-gradient(135deg, var(--panel-bg) 60%, #2a2200 100%); overflow: hidden; }
+        .elite-banner::before { content: '⭐ ELITE'; position: absolute; top: 12px; right: -30px; background: var(--gold); color: #000; padding: 3px 30px; font-size: 10px; font-weight: bold; transform: rotate(45deg); box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 1;}
+
+        .player-info { display: flex; align-items: center; gap: 15px; flex: 1; min-width: 200px; z-index: 2; }
+        .tier-badge { background: #333; padding: 5px 10px; border-radius: 5px; font-weight: bold; color: var(--primary-red); }
+        .elite-banner .tier-badge { color: var(--gold); background: #222; border: 1px solid var(--gold); }
+        .player-name { font-size: 18px; font-weight: bold; }
+        .player-platform { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+        .player-status { font-size: 12px; padding: 3px 8px; border-radius: 3px; }
+        .status-activo { background: #1b4b22; color: #50e36d; }
+        .status-retirado { background: #4b1b1b; color: #e35050; }
+        
+        .duels-section { font-size: 12px; color: var(--text-muted); flex: 1; min-width: 200px; z-index: 2; }
+        .duel-entry { display: flex; gap: 5px; margin-top: 5px; }
+        .duel-up { color: #50e36d; }
+        .duel-down { color: #e35050; }
+
+        .admin-actions { display: none; gap: 5px; z-index: 2; }
+        .admin-actions button { padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-edit { background: #3b82f6; color: white; }
+        .btn-duel { background: #8b5cf6; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+
+        /* Modal Login */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 10; }
+        .modal-content { background: var(--panel-bg); padding: 30px; border-radius: 10px; width: 300px; text-align: center; }
+        .modal-content input { width: 100%; margin: 10px 0; padding: 10px; background: var(--bg-color); border: 1px solid var(--border-color); color: white; }
+        .modal-content button { background: var(--primary-red); color: white; border: none; padding: 10px; width: 100%; cursor: pointer; border-radius: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">tiert<span>1MB</span></div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Buscar jugador o plataforma (java/bedrock)..." onkeyup="renderPlayers()">
+        </div>
+        <button class="admin-btn" onclick="openLogin()">Admin</button>
+    </header>
+
+    <div class="tabs" id="tabs-container">
+        <!-- Generado por JS -->
+    </div>
+
+    <div class="container">
+        <!-- Panel de Administración -->
+        <div id="admin-panel">
+            <h3>Panel de Administración</h3>
+            <div class="admin-grid">
+                <input type="hidden" id="edit-id">
+                <input type="text" id="form-name" placeholder="Nombre de usuario">
+                <select id="form-platform">
+                    <option value="Java">Java</option>
+                    <option value="Bedrock">Bedrock</option>
+                </select>
+                <select id="form-tier">
+                    <option value="LT5">LT5</option>
+                    <option value="MidT5">MidT5</option>
+                    <option value="HT5">HT5</option>
+                    <option value="LT4">LT4</option>
+                    <option value="MidT4">MidT4</option>
+                    <option value="HT4">HT4</option>
+                    <option value="LT3">LT3</option>
+                    <option value="MidT3">MidT3</option>
+                    <option value="HT3">HT3</option>
+                    <option value="LT2">LT2</option>
+                    <option value="MidT2">MidT2</option>
+                    <option value="HT2">HT2</option>
+                    <option value="LT1">LT1</option>
+                    <option value="MidT1">MidT1</option>
+                    <option value="HT1">HT1</option>
+                </select>
+                <input type="number" id="form-points" placeholder="Puntos">
+                <select id="form-status">
+                    <option value="activo">Activo</option>
+                    <option value="retirado">Retirado</option>
+                </select>
+            </div>
+            <button class="btn-submit" onclick="savePlayer()">Guardar / Actualizar Jugador</button>
+        </div>
+
+        <!-- Lista de Tier List -->
+        <div id="tier-list-container">
+            <!-- Jugadores generados por JS -->
+        </div>
+    </div>
+
+    <!-- Modal Login -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:15px; color:white;">Acceso Admin</h3>
+            <input type="text" id="loginUser" placeholder="Usuario">
+            <input type="password" id="loginPass" placeholder="Contraseña">
+            <button onclick="checkLogin()">Entrar</button>
+            <button onclick="closeLogin()" style="background:transparent; margin-top:10px; border:1px solid var(--border-color);">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // Modalidades (Añadido Top General separado)
+        const modes = [
+            { id: 'general', name: 'Top General', emoji: '👑' },
+            { id: 'uhc', name: 'Uhc', emoji: '🍎' },
+            { id: 'sword', name: 'Sword', emoji: '⚔️' },
+            { id: 'smp', name: 'SMP', emoji: '🌍' },
+            { id: 'mazo', name: 'Mazo', emoji: '🔨' },
+            { id: 'nethpot', name: 'Neth pot', emoji: '🧪' },
+            { id: 'diamondpot', name: 'Diamond pot', emoji: '💎' },
+            { id: 'axe', name: 'Axe', emoji: '🪓' },
+            { id: 'crystal', name: 'Crystal', emoji: '🔮' }
+        ];
+
+        // Tiers que califican para el Banner Élite
+        const eliteTiers = ['MidT3', 'HT3', 'LT2', 'MidT2', 'HT2', 'LT1', 'MidT1', 'HT1'];
+
+        let currentMode = 'general';
+        let isAdmin = false;
+
+        // Cargar base de datos desde LocalStorage para que no se borre al actualizar
+        let players = JSON.parse(localStorage.getItem('tiert1mb_data')) || [
+            { id: 1, name: 'Distraccion', platform: 'Java', mode: 'general', tier: 'HT1', points: 3000, status: 'activo', duels: [] },
+            { id: 2, name: 'Elfo', platform: 'Java', mode: 'uhc', tier: 'MidT3', points: 1500, status: 'activo', duels: [] }
+        ];
+
+        // Función para guardar datos en el navegador
+        function saveData() {
+            localStorage.setItem('tiert1mb_data', JSON.stringify(players));
+        }
+
+        // Renderizar Pestañas
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = modes.map(mode => `
+                <div class="tab ${currentMode === mode.id ? 'active' : ''}" onclick="changeMode('${mode.id}')">
+                    ${mode.emoji} ${mode.name}
+                </div>
+            `).join('');
+        }
+
+        function changeMode(modeId) {
+            currentMode = modeId;
+            renderTabs();
+            renderPlayers();
+        }
+
+        // Renderizar Lista de Jugadores
+        function renderPlayers() {
+            const container = document.getElementById('tier-list-container');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filteredPlayers = players.filter(p => p.mode === currentMode);
+            
+            if (search) {
+                filteredPlayers = filteredPlayers.filter(p => 
+                    p.name.toLowerCase().includes(search) || 
+                    p.platform.toLowerCase().includes(search)
+                );
+            }
+
+            // Ordenar por puntos de mayor a menor
+            filteredPlayers.sort((a, b) => b.points - a.points);
+
+            if (filteredPlayers.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">No se encontraron jugadores en esta modalidad.</p>';
+                return;
+            }
+
+            container.innerHTML = filteredPlayers.map((p, index) => {
+                // Verificar si merece banner elite
+                const isElite = eliteTiers.includes(p.tier);
+                
+                return `
+                <div class="player-card ${isElite ? 'elite-banner' : ''}">
+                    <div class="player-info">
+                        <span style="color:var(--text-muted); font-size:18px;">#${index + 1}</span>
+                        <div class="tier-badge">${p.tier}</div>
+                        <div>
+                            <div class="player-name">${p.name} <span class="player-platform">(${p.platform})</span></div>
+                            <div class="player-status status-${p.status}">${p.status.toUpperCase()}</div>
+                            <div style="font-size:12px; color: ${isElite ? 'var(--gold)' : 'var(--primary-red)'}; font-weight:bold; margin-top:3px;">${p.points} pts</div>
+                        </div>
+                    </div>
+                    
+                    <div class="duels-section">
+                        <strong>Últimos Duelos:</strong>
+                        ${p.duels.length > 0 ? p.duels.map(d => `
+                            <div class="duel-entry">
+                                <span>${d.text}</span>
+                                <span class="${d.trend === 'up' ? 'duel-up' : 'duel-down'}">
+                                    ${d.trend === 'up' ? '↑' : '↓'}
+                                </span>
+                            </div>
+                        `).join('') : '<div style="color:#555">Sin duelos recientes</div>'}
+                    </div>
+
+                    <div class="admin-actions" style="display: ${isAdmin ? 'flex' : 'none'}">
+                        <button class="btn-edit" onclick="editPlayer(${p.id})">Editar</button>
+                        <button class="btn-duel" onclick="addDuel(${p.id})">+ Duelo</button>
+                        <button class="btn-delete" onclick="deletePlayer(${p.id})">Eliminar</button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // Sistema Admin
+        function openLogin() {
+            if (isAdmin) {
+                isAdmin = false;
+                document.getElementById('admin-panel').style.display = 'none';
+                document.querySelector('.admin-btn').innerText = 'Admin';
+                renderPlayers();
+            } else {
+                document.getElementById('loginModal').style.display = 'flex';
+            }
+        }
+
+        function closeLogin() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('loginUser').value = '';
+            document.getElementById('loginPass').value = '';
+        }
+
+        function checkLogin() {
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+            
+            if (user === 'Admin' && pass === '9900') {
+                isAdmin = true;
+                closeLogin();
+                document.getElementById('admin-panel').style.display = 'block';
+                document.querySelector('.admin-btn').innerText = 'Cerrar Sesión';
+                renderPlayers();
+            } else {
+                alert('Usuario o contraseña incorrectos.');
+            }
+        }
+
+        // CRUD de Jugadores
+        function savePlayer() {
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('form-name').value;
+            const platform = document.getElementById('form-platform').value;
+            const tier = document.getElementById('form-tier').value;
+            const points = parseInt(document.getElementById('form-points').value) || 0;
+            const status = document.getElementById('form-status').value;
+
+            if (!name) return alert('El nombre es obligatorio');
+
+            if (id) {
+                // Editar
+                const player = players.find(p => p.id == parseInt(id));
+                player.name = name;
+                player.platform = platform;
+                player.tier = tier;
+                player.points = points;
+                player.status = status;
+            } else {
+                // Crear nuevo
+                players.push({
+                    id: Date.now(),
+                    name, platform, tier, points, status, mode: currentMode, duels: []
+                });
+            }
+
+            saveData(); // Guardar en el navegador
+            
+            document.getElementById('edit-id').value = '';
+            document.getElementById('form-name').value = '';
+            document.getElementById('form-points').value = '';
+            
+            renderPlayers();
+        }
+
+        function editPlayer(id) {
+            const p = players.find(p => p.id === id);
+            document.getElementById('edit-id').value = p.id;
+            document.getElementById('form-name').value = p.name;
+            document.getElementById('form-platform').value = p.platform;
+            document.getElementById('form-tier').value = p.tier;
+            document.getElementById('form-points').value = p.points;
+            document.getElementById('form-status').value = p.status;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deletePlayer(id) {
+            if (confirm('¿Estás seguro de que deseas ELIMINAR a este jugador?')) {
+                players = players.filter(p => p.id !== id);
+                saveData(); // Guardar en el navegador
+                renderPlayers();
+            }
+        }
+
+        function addDuel(id) {
+            const text = prompt('¿A quién le ganó/perdió? (Ej: "Ganó a JugadorX")');
+            if (!text) return;
+            const subio = confirm('¿Haz clic en "Aceptar" si SUBIÓ, o "Cancelar" si BAJÓ.');
+            
+            const player = players.find(p => p.id === id);
+            player.duels.unshift({ text: text, trend: subio ? 'up' : 'down' });
+            
+            if (player.duels.length > 3) player.duels.pop();
+            
+            saveData(); // Guardar en el navegador
+            renderPlayers();
+        }
+
+        // Iniciar App
+        renderTabs();
+        renderPlayers();
+    </script>
+</body>
+</html>
