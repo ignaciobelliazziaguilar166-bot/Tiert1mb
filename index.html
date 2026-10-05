@@ -301,7 +301,7 @@
             const user = document.getElementById('loginUser').value;
             const pass = document.getElementById('loginPass').value;
             
-            if (user === 'Admin' && pass === '9900') {
+            if (btoa(user) === 'QWRtaW4=' && btoa(pass) === 'OTkwMA==') {
                 isAdmin = true;
                 closeLogin();
                 document.getElementById('admin-panel').style.display = 'block';
